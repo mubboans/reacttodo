@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import FloatingLabel from "react-bootstrap/FloatingLabel";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
@@ -11,36 +11,36 @@ import { Todo } from "../interface/todo";
 const form = () => {
   const [newItem, setnewItem] = useState("");
   const [todo, setTodo] = useState<Todo[]>([]);
-  function sortTodo(todo) {
-    let a = todo.reverse();
-    // todo = todo.sort((a, b) => {
-    //   console.log(a, b, "data check to sort");
-
-    //   a - b;
-    // });
-    console.log("sorting todo", a);
-    return a;
+  const [editdata, seteditdata] = useState([]);
+  function deleteTodo(id) {
+    let deletedTodo = todo.filter((x) => x.id !== id);
+    setTodo(deletedTodo);
+    setLocalValue(deletedTodo);
   }
   function toogleTodoForm(id, completed) {
-    console.log(id, completed, "form component");
-    let setTodos = [
-      ...todo,
-      todo.map((x) => {
-        console.log(x.id, id, "");
+    let setTodos = todo.map((x) => {
+      console.log(x.id, id, "");
 
-        if (x.id == id) {
-          return { ...x, completed };
-        }
-      })
-    ];
-    console.log(setTodos, "check value after check");
-
-    setTodo([...setTodos]);
+      if (x.id == id) {
+        return { ...x, completed };
+      } else {
+        return { ...x };
+      }
+    });
+    setTodo(setTodos);
+    setLocalValue(setTodos);
+  }
+  function editTodo(id) {
+    console.log(id);
+    let editdata = todo.filter((x) => x.id == id)[0];
+    console.log(editdata, "edit title check");
+    setnewItem(editdata.title);
+    seteditdata([editdata]);
   }
   useEffect(() => {
     const storeddata = JSON.parse(localStorage.getItem("todo"));
     if (storeddata) {
-      storeddata.reverse();
+      // storeddata.reverse();
       setTodo(storeddata);
     }
     //  storeddata ? JSON.parse(storeddata) : [];
@@ -48,7 +48,9 @@ const form = () => {
   const setTodotoLocal = (e) => {
     e.preventDefault();
     let setTododata = [];
-    if (newItem !== "") {
+    console.log(editdata.length, "editdata.length");
+
+    if (newItem !== "" && editdata.length <= 0) {
       console.log(newItem, "newItem check");
 
       setTododata = [
@@ -56,15 +58,36 @@ const form = () => {
         {
           id: crypto.randomUUID(),
           title: newItem,
-          completed: true
+          status: 0,
+          completed: false
         }
       ];
-      setTododata.reverse();
       setTodo(setTododata);
-      localStorage.setItem("todo", JSON.stringify(setTododata));
+      setLocalValue(setTododata);
+      setnewItem("");
+    }
+    if (editdata.length > 0) {
+      console.log(editdata[0].id, "id check for edit data");
+
+      let setTodos = todo.map((x) => {
+        // console.log(x.id, id, "");
+
+        if (x.id == editdata[0].id) {
+          return { ...x, title: newItem };
+        } else {
+          return { ...x };
+        }
+      });
+      console.log(setTodos, "values after check ");
+      setLocalValue(setTodos);
+      setTodo(setTodos);
+      seteditdata([]);
       setnewItem("");
     }
   };
+  function setLocalValue(value: Todo[]) {
+    localStorage.setItem("todo", JSON.stringify(value));
+  }
   return (
     <>
       <Container>
@@ -82,7 +105,9 @@ const form = () => {
                 >
                   <Form.Control
                     value={newItem}
-                    onInput={(e) => setnewItem(e.target.value)}
+                    onInput={(e: ChangeEvent<HTMLInputElement>) =>
+                      setnewItem(e.target.value)
+                    }
                     type="Name"
                     placeholder="Task Name"
                   />
@@ -93,12 +118,15 @@ const form = () => {
                 size="lg"
                 onClick={setTodotoLocal}
               >
-                Add Task
+                {editdata.length > 0 ? "Save" : "Add task"}
+                {/* Add Task */}
               </Button>
             </Form>
             <Todolist
               onTodoChange={toogleTodoForm}
-              todo={sortTodo(todo)}
+              deleteTodo={deleteTodo}
+              editTodo={editTodo}
+              todo={todo}
               heading="Todo List"
             />
             {/* {todo.length > 0 && <Todolist heading="Todo List" todo={todo} />} */}
